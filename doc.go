@@ -10,10 +10,10 @@
 //
 // mcpharness fills that gap with a small SDK-neutral surface:
 //
-//   - [Client] is the test interface every adapter implements. Today the
-//     [github.com/ultramcu/mcpharness/mark3] subpackage adapts
-//     mark3labs/mcp-go. An adapter for modelcontextprotocol/go-sdk is
-//     planned for v0.2.
+//   - [Client] is the test interface every adapter implements. Two
+//     adapters ship: [github.com/ultramcu/mcpharness/mark3] for
+//     mark3labs/mcp-go, and [github.com/ultramcu/mcpharness/sdk] for
+//     the official modelcontextprotocol/go-sdk.
 //
 //   - [Recorder] wraps any [Client] and writes every call's request and
 //     response to a JSON Lines stream. [Replay] reads such a stream back
@@ -48,6 +48,7 @@
 //	    }
 //	}
 //
-// See the package examples and the mark3 subpackage for end-to-end
-// patterns including recording and replay.
+// See the mark3 and sdk subpackages for adapter end-to-end patterns,
+// and the conformance subpackage for driving Anthropic's official
+// test harness from go test.
 package mcpharness

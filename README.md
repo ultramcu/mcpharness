@@ -11,11 +11,12 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) ecosystem in
 
 `mcpharness` fills that gap with a small SDK-neutral surface.
 
-## Features (v0.1)
+## Features
 
-- **`mcpharness.Client`** — neutral interface every adapter implements. Today's adapter is [`mark3`](./mark3) for `mark3labs/mcp-go`. An adapter for the official `modelcontextprotocol/go-sdk` is on the v0.2 roadmap.
+- **`mcpharness.Client`** — neutral interface every adapter implements. Two adapters ship today: [`mark3`](./mark3) for [`mark3labs/mcp-go`](https://github.com/mark3labs/mcp-go) (8.7k ⭐, the de-facto Go MCP framework), and [`sdk`](./sdk) for [`modelcontextprotocol/go-sdk`](https://github.com/modelcontextprotocol/go-sdk) (4.6k ⭐, the official Anthropic SDK).
 - **`Recorder`** wraps any `Client` and writes every call (`initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`) to a JSON Lines stream.
 - **`Replay`** reads a recorded stream back and returns a deterministic `Client` that asserts each call matches the recording. Catches three regression classes: wrong method, wrong params, extra/missing calls.
+- [**`conformance.Run`**](./conformance) — bridge to Anthropic's official [conformance test harness](https://github.com/modelcontextprotocol/conformance). Drive `npx @modelcontextprotocol/conformance` from `go test`, fail loudly on any scenario regression. Skips automatically when Node.js is unavailable.
 
 ## Why not just use the framework's own client?
 
@@ -101,10 +102,27 @@ func TestReplay(t *testing.T) {
 
 If the second-phase test calls a method that doesn't match the recording, or passes different params, `Replay` calls `t.Fatalf` with a precise diff — no silent drift.
 
+## Conformance bridge
+
+```go
+import "github.com/ultramcu/mcpharness/conformance"
+
+func TestMCPConformance(t *testing.T) {
+    srv := startMyServerOnRandomPort(t) // your own HTTP transport setup
+    conformance.Run(t, srv.URL)         // skips if npx not on PATH
+}
+```
+
+Narrow the run to a single suite for faster iteration:
+
+```go
+conformance.Run(t, srv.URL, conformance.WithSuite("core"))
+```
+
 ## Roadmap
 
-- **v0.1** (this release): `Client` + `Recorder` + `Replay` + mark3labs adapter.
-- **v0.2**: adapter for `modelcontextprotocol/go-sdk`; `Conformance` helper that drives [`@modelcontextprotocol/conformance`](https://github.com/modelcontextprotocol/conformance) from `go test`.
+- **v0.1**: `Client` + `Recorder` + `Replay` + mark3labs adapter. *(shipped)*
+- **v0.2** (this release): adapter for `modelcontextprotocol/go-sdk`; `conformance.Run` bridge to the official `npx @modelcontextprotocol/conformance` harness.
 - **v0.3**: fuzz harnesses for JSON-RPC framing + tool inputs; snapshot helpers with `-update` flag.
 
 ## Versioning
