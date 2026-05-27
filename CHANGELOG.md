@@ -2,6 +2,21 @@
 
 All notable changes to `mcpharness` are documented here. The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [SemVer](https://semver.org).
 
+## [v0.3.0] — 2026-05-27
+
+### Added
+
+- `FuzzCallTool(f *testing.F, client, toolName, seeds...)` — wires a `Client` + tool name into Go's native fuzz infrastructure. Per-iteration timeout, treats panic / hang / transport-error as failures while accepting `IsError=true` as spec-correct handled-error behaviour. Inputs that don't decode as a JSON object are silently skipped.
+- `Snapshot(t, name, got, opts...)` — golden-file regression with stable JSON canonicalisation (sorted map keys). First run writes + logs; subsequent runs compare with a line-aware diff on failure.
+- `MCPHARNESS_UPDATE_SNAPSHOTS=1` env var — rewrite all snapshot files in a run instead of comparing. Useful when behaviour intentionally changed and baselines need to be regenerated.
+- `WithDir` and `WithExt` options for `Snapshot` to override the default `testdata/snapshots/*.json` layout.
+
+### Changed
+
+- **Breaking (small):** `TestingT` interface now includes `Logf(format string, args ...any)`. Callers using `*testing.T` are unaffected; callers with custom `TestingT` implementations need to add the method. The change was needed so `Snapshot` can emit informational messages on first-run / update without failing the test.
+
+[v0.3.0]: https://github.com/ultramcu/mcpharness/releases/tag/v0.3.0
+
 ## [v0.2.0] — 2026-05-27
 
 ### Added

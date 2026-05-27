@@ -194,3 +194,13 @@ func (c *captureT) Fatalf(format string, args ...any) {
 	c.fataled = true
 	c.msg = fmt.Sprintf(format, args...)
 }
+func (c *captureT) Logf(format string, args ...any) {
+	// Capture logs into msg too so first-run/update Snapshot output is
+	// inspectable by tests, but don't clobber a previous Fatalf.
+	if c.fataled {
+		return
+	}
+	if c.msg == "" {
+		c.msg = fmt.Sprintf(format, args...)
+	}
+}

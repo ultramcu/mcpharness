@@ -16,6 +16,8 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) ecosystem in
 - **`mcpharness.Client`** — neutral interface every adapter implements. Two adapters ship today: [`mark3`](./mark3) for [`mark3labs/mcp-go`](https://github.com/mark3labs/mcp-go) (8.7k ⭐, the de-facto Go MCP framework), and [`sdk`](./sdk) for [`modelcontextprotocol/go-sdk`](https://github.com/modelcontextprotocol/go-sdk) (4.6k ⭐, the official Anthropic SDK).
 - **`Recorder`** wraps any `Client` and writes every call (`initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`) to a JSON Lines stream.
 - **`Replay`** reads a recorded stream back and returns a deterministic `Client` that asserts each call matches the recording. Catches three regression classes: wrong method, wrong params, extra/missing calls.
+- **`FuzzCallTool`** plugs any `Client` + tool name into Go's native `*testing.F` fuzz infrastructure. Per-iteration timeout, fails on panic / hang / transport error, accepts `IsError=true` as a handled-error signal.
+- **`Snapshot`** golden-file regression for any value with stable JSON canonicalisation. First run creates the baseline; subsequent runs diff. `MCPHARNESS_UPDATE_SNAPSHOTS=1` to bulk-regenerate.
 - [**`conformance.Run`**](./conformance) — bridge to Anthropic's official [conformance test harness](https://github.com/modelcontextprotocol/conformance). Drive `npx @modelcontextprotocol/conformance` from `go test`, fail loudly on any scenario regression. Skips automatically when Node.js is unavailable.
 
 ## Why not just use the framework's own client?
@@ -119,11 +121,44 @@ Narrow the run to a single suite for faster iteration:
 conformance.Run(t, srv.URL, conformance.WithSuite("core"))
 ```
 
+## Fuzz a tool
+
+```go
+func FuzzEchoTool(f *testing.F) {
+    srv := buildEchoServer()
+    client, _ := mark3.New(srv)
+    defer client.Close()
+
+    mcpharness.FuzzCallTool(f, client, "echo",
+        map[string]any{"text": "hello"},
+        map[string]any{"text": ""},
+        map[string]any{},
+    )
+}
+// go test -fuzz=FuzzEchoTool -fuzztime=30s ./...
+```
+
+Inputs that don't decode as JSON objects are silently skipped. Inputs that make the tool panic, hang past the per-iteration timeout, or surface a transport error fail the fuzz iteration — but a tool returning `IsError=true` is treated as a valid handled-error path.
+
+## Snapshot a result
+
+```go
+res, _ := client.CallTool(ctx, "echo", map[string]any{"text": "ping"})
+mcpharness.Snapshot(t, "echo-ping", res)
+```
+
+First run writes `testdata/snapshots/echo-ping.json` and logs that a baseline was created. Subsequent runs compare byte-for-byte after stable JSON canonicalisation. To intentionally regenerate after a behaviour change, set the env var:
+
+```bash
+MCPHARNESS_UPDATE_SNAPSHOTS=1 go test ./...
+```
+
 ## Roadmap
 
 - **v0.1**: `Client` + `Recorder` + `Replay` + mark3labs adapter. *(shipped)*
-- **v0.2** (this release): adapter for `modelcontextprotocol/go-sdk`; `conformance.Run` bridge to the official `npx @modelcontextprotocol/conformance` harness.
-- **v0.3**: fuzz harnesses for JSON-RPC framing + tool inputs; snapshot helpers with `-update` flag.
+- **v0.2**: adapter for `modelcontextprotocol/go-sdk`; `conformance.Run` bridge to the official `npx @modelcontextprotocol/conformance` harness. *(shipped)*
+- **v0.3** (this release): `FuzzCallTool` harness on top of Go's native `*testing.F`; `Snapshot` golden-file helper with `MCPHARNESS_UPDATE_SNAPSHOTS` env override.
+- **v0.4+**: HTTP-transport spawner helper to make the conformance bridge fully turnkey; resource-template support in the `Client` surface; multi-content `ReadResource` accessor.
 
 ## Versioning
 

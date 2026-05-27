@@ -20,6 +20,14 @@
 //     and returns a deterministic [Client] that asserts each call matches
 //     the recorded sequence.
 //
+//   - [FuzzCallTool] plugs a [Client] + tool name into Go's native
+//     `*testing.F` fuzz infrastructure. Fails on panic, hang, or
+//     transport error; treats IsError=true as a handled error.
+//
+//   - [Snapshot] is a golden-file regression helper for any value, with
+//     stable JSON canonicalisation. Set MCPHARNESS_UPDATE_SNAPSHOTS=1 to
+//     regenerate baselines after intentional behaviour changes.
+//
 // Quick example using the mark3labs adapter:
 //
 //	import (

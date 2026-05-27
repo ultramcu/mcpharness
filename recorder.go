@@ -111,12 +111,19 @@ func (r *Recorder) Close() error {
 
 // --- Replay ---------------------------------------------------------
 
-// TestingT is the subset of testing.TB that Replay needs. Pass *testing.T
-// in your test; the indirection lets the package stay free of a
-// testing-only import path in production code.
+// TestingT is the subset of testing.TB that this package needs.
+// Pass *testing.T in your test; the indirection lets the package
+// stay free of a testing-only import path in production code.
+//
+// Methods used:
+//   - Helper: marks the caller as a helper for error attribution.
+//   - Fatalf: report a failure and abort the test.
+//   - Logf: emit non-fatal informational output (used by Snapshot's
+//     first-run / update paths).
 type TestingT interface {
 	Helper()
 	Fatalf(format string, args ...any)
+	Logf(format string, args ...any)
 }
 
 // ReplayClient is a Client that returns deterministic responses from a
